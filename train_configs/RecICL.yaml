@@ -1,0 +1,83 @@
+model:
+  arch: mini_gpt4rec_v2 # by default
+  model_type: pretrain_qwen
+  freeze_rec: True   
+  freeze_proj: True     
+  freeze_lora: False 
+  max_txt_len: 2048 # 2048 for context, 1024 for without context
+  proj_token_num: 1 # default:1,  the number of text token embeddings that the A single ID embedding is converted into
+  proj_drop: 0 # by default
+  proj_mid_times: 10 # proj_mid_times * rec embedding size = the middle layer size of the mapping module
+  end_sym: "###"
+  prompt_path: "/path/to/the/prompt"
+  prompt_template: '{}'
+  qwen_model: "/path/to/qwen1.5-0.5b"
+  incontext_learning: True #True for use context, False for tallrec and binllm
+  incontext_sample_len: 5 #sample len, only work when incontext_learning is True
+  shuffle_train_data: True #default: True
+  user_num: -100
+  item_num: -100
+  ans_type: 'v2' # by default
+  rec_model: "hash" #"hash" for injecting CF, None for not injecting CF
+  lora_config: #default not use for qwen 0.5b
+    use_lora: False
+    r: 8
+    alpha: 16
+    target_modules: ["q_proj", "v_proj"] # default: ["q_proj", "v_proj"]; others? ['lm_head'], ["q_proj", "v_proj",'k_proj','o_proj'] 
+    dropout: 0.05
+  rec_config: # recommender model config, work when rec_model is 'hash'
+    user_num: -100
+    item_num: -100
+    embedding_size: 32 #embedding size, 
+    code_mode: 'binary' #choose 'binary' or 'ipv4'
+    pretrained_path: ["/path1/hash1.pth",
+                      "/path2/hash2.pth",
+                      "/path3/hash3.pth",
+                      "/path4/hash4.pth",
+                      "/path5/hash5.pth"]
+    # if rec_model is None, pretrained_path should be not_have;
+    # pretrained_path: None
+    # if rec_model is 'hash' and incontext_learning is True,pretrained_path should be a paths list; 
+    # pretrained_path: ["/path1/hash1.pth","/path2/hash2.pth",...]
+    # if rec_model is 'hash' and incontext_learning is False, pretrained_path should be a path.
+    # pretrained_path: /path/hash.pth
+
+datasets:
+  amazon_ood:
+    incontext_learning: True #True for use context, False for tallrec and binllm
+    incontext_sample_len: 5  #sample len, only work when incontext_learning is True
+    path: "/path/to/dataset/"
+    data_type: default
+    build_info:
+      storage: "/path/to/dataset/"
+ 
+run:
+  task: rec_pretrain
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 5e-5
+  min_lr: 5e-6
+  warmup_lr: 1e-5
+  mode: 'v3' # 'v3' for injecting CF , 'v2' for not injecting CF
+
+  weight_decay: 0.01 
+  max_epoch: 200
+  iters_per_epoch: 500 
+  batch_size_train: 2 
+  batch_size_eval: 8 
+  num_workers: 4
+  warmup_steps: 200 
+
+  seed: 42
+  output_dir: /path/to/output/
+
+  amp: False
+  resume_ckpt_path: /path/to/checkpoint_best.pth #None for no ckpt
+  evaluate: False # False: training, True: only evaluation 
+  train_splits: ["train"] 
+  valid_splits: ["valid"] # validation set
+  test_splits: ["test","valid"] # used when evluate=True, reporting both the testing and validation results
+
+  device: "cuda"
+  world_size: 1
+  dist_url: "env://"
+  distributed: True
